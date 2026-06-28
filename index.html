@@ -87,8 +87,8 @@
   <div class="chat-box">
     <input type="text" id="userInput" placeholder="Ask me anything..." />
     <button onclick="askRobo()">Ask</button>
-  </div>
-
+    <button onclick="startVoice()" id="voiceBtn">🎤</button>
+</div>
   <p id="response">I'm ready! Ask me something 😊</p>
 
   <script src="config.js"></script>
@@ -138,7 +138,36 @@
       ctx.stroke();
     }
 
+   drawFace('neutral');
+
+// Blinking animation
+let isBlinking = false;
+
+function blink() {
+  isBlinking = true;
+  
+  // Close eyes
+  ctx.fillStyle = '#1a1a2e';
+  ctx.fillRect(45, 60, 50, 45);
+  ctx.fillRect(105, 60, 50, 45);
+  
+  // Open eyes after 150ms
+  setTimeout(() => {
+    isBlinking = false;
     drawFace('neutral');
+  }, 150);
+}
+
+// Blink every 3-6 seconds randomly
+function scheduleBlink() {
+  const randomTime = Math.random() * 3000 + 3000;
+  setTimeout(() => {
+    if (!isBlinking) blink();
+    scheduleBlink();
+  }, randomTime);
+}
+
+scheduleBlink();
 
     async function askRobo() {
       const input = document.getElementById('userInput').value;
@@ -177,8 +206,16 @@
         }
 
         const answer = data.choices[0].message.content;
-        drawFace('happy');
-        document.getElementById('response').innerText = answer;
+drawFace('happy');
+document.getElementById('response').innerText = answer;
+
+// Robo speaks back!
+const speech = new SpeechSynthesisUtterance(answer);
+speech.lang = 'en-US';
+speech.pitch = 1.5;
+speech.rate = 0.9;
+speech.volume = 1;
+window.speechSynthesis.speak(speech);
 
       } catch (error) {
         drawFace('surprised');
@@ -191,7 +228,31 @@
 
     document.getElementById('userInput').addEventListener('keypress', function(e) {
       if (e.key === 'Enter') askRobo();
-    });
+    });  
+    // Voice input
+function startVoice() {
+  const recognition = new webkitSpeechRecognition();
+  recognition.lang = 'en-US';
+  recognition.start();
+
+  // Show listening face
+  document.getElementById('voiceBtn').innerText = '🔴';
+  document.getElementById('response').innerText = 'Listening... 🎤';
+  drawFace('surprised');
+
+  recognition.onresult = function(event) {
+    const spokenText = event.results[0][0].transcript;
+    document.getElementById('userInput').value = spokenText;
+    document.getElementById('voiceBtn').innerText = '🎤';
+    askRobo();
+  }
+
+  recognition.onerror = function() {
+    document.getElementById('voiceBtn').innerText = '🎤';
+    document.getElementById('response').innerText = 'Could not hear you 😅 Try again!';
+    drawFace('neutral');
+  }
+}
   </script>
 
 </body>
